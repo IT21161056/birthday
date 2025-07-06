@@ -2,25 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Birthday AR Cake</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- MindAR & Three.js -->
+    <title>AR Birthday Cake</title>
+
+    <!-- MindAR + Three.js -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/GLTFLoader.js"></script>
+
     <style>
       body,
       html {
         margin: 0;
+        padding: 0;
         overflow: hidden;
         background: #000;
       }
-      canvas {
-        display: block;
+      #ar-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
       }
     </style>
   </head>
   <body>
+    <div id="ar-container"></div>
     <audio id="bg-music" src="assets/birthday.mp3" preload="auto"></audio>
 
     <script type="module">
@@ -29,40 +35,42 @@
       import { MindARThree } from "https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js";
 
       const music = document.getElementById("bg-music");
+      const container = document.getElementById("ar-container");
 
-      const mindarThree = new MindARThree({
-        container: document.body,
-        imageTargetSrc: "assets/marker.mind",
-      });
-
-      const { renderer, scene, camera } = mindarThree;
-      const anchor = mindarThree.addAnchor(0); // for marker index 0
-
-      const cakeGroup = new THREE.Group();
-      anchor.group.add(cakeGroup);
-
-      // Load the cake model
-      const loader = new GLTFLoader();
-      loader.load("assets/cake.glb", (gltf) => {
-        gltf.scene.scale.set(0.3, 0.3, 0.3);
-        gltf.scene.position.set(0, 0, 0);
-        cakeGroup.add(gltf.scene);
-      });
-
-      anchor.onTargetFound = () => {
-        music.play().catch((e) => {
-          console.log("Autoplay failed:", e);
+      window.addEventListener("DOMContentLoaded", async () => {
+        const mindarThree = new MindARThree({
+          container: container,
+          imageTargetSrc: "assets/marker.mind",
         });
-      };
 
-      anchor.onTargetLost = () => {
-        music.pause();
-        music.currentTime = 0;
-      };
+        const { renderer, scene, camera } = mindarThree;
+        const anchor = mindarThree.addAnchor(0);
 
-      await mindarThree.start();
-      renderer.setAnimationLoop(() => {
-        renderer.render(scene, camera);
+        const cakeGroup = new THREE.Group();
+        anchor.group.add(cakeGroup);
+
+        const loader = new GLTFLoader();
+        loader.load("assets/cake.glb", (gltf) => {
+          gltf.scene.scale.set(0.3, 0.3, 0.3);
+          gltf.scene.position.set(0, 0, 0);
+          cakeGroup.add(gltf.scene);
+        });
+
+        anchor.onTargetFound = () => {
+          music.play().catch((err) => {
+            console.warn("Autoplay failed. User gesture required.", err);
+          });
+        };
+
+        anchor.onTargetLost = () => {
+          music.pause();
+          music.currentTime = 0;
+        };
+
+        await mindarThree.start();
+        renderer.setAnimationLoop(() => {
+          renderer.render(scene, camera);
+        });
       });
     </script>
   </body>
